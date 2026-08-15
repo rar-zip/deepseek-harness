@@ -166,13 +166,35 @@ describe('ui-theme apply', () => {
     await fiber.dispose()
   })
 
-  it('ignores an invalid preference crossing the settings wire', async () => {
+  it('keeps an unregistered persisted preference but resolves to the light base', async () => {
     const b = await bench()
     b.setHostPreference('sepia')
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const theme = b.ctx.get('theme') as ThemeRuntime
     await vi.waitFor(() => { expect(b.describe).toHaveBeenCalledOnce() })
-    expect(theme.getTheme().preference).toBe('system')
+    expect(theme.getTheme().preference).toBe('sepia')
+    expect(theme.getTheme().active.id).toBe('light')
+  })
+
+  it('persists a curated theme id through the settings scope, not only built-in preferences', async () => {
+    const b = await bench()
+    declareItems(b.slots)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const theme = b.ctx.get('theme') as ThemeRuntime
+    theme.setTheme('neon-purple')
+    expect(theme.getTheme().preference).toBe('neon-purple')
+    expect(theme.getTheme().active.id).toBe('neon-purple')
+    await vi.waitFor(() => { expect(b.mutate).toHaveBeenCalled() })
+  })
+
+  it('resolves a persisted curated theme once it registers after adopt', async () => {
+    const b = await bench()
+    b.setHostPreference('neon-purple')
+    declareItems(b.slots)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const theme = b.ctx.get('theme') as ThemeRuntime
+    await vi.waitFor(() => { expect(theme.getTheme().active.id).toBe('neon-purple') })
+    expect(theme.getTheme().preference).toBe('neon-purple')
   })
 
   it('recovers after an HMR collapse of the declaring entry (stale disposer must not block)', async () => {

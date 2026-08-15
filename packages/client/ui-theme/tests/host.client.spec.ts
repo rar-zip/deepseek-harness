@@ -24,7 +24,9 @@ describe('ui-theme host', () => {
     expect(ctx.settings.get(ns)).toEqual({ preference: DEFAULT_PREFERENCE })
     await ctx.settings.update(ns, { preference: 'dark' })
     expect(ctx.settings.get(ns)).toEqual({ preference: 'dark' })
-    await expect(ctx.settings.update(ns, { preference: 'sepia' })).rejects.toThrow()
+    // Any string is a valid durable preference: built-in or a registered theme id.
+    await ctx.settings.update(ns, { preference: 'sepia' })
+    expect(ctx.settings.get(ns)).toEqual({ preference: 'sepia' })
     await fiber.dispose()
     expect(ctx.settings.describe().map(row => row.ns)).not.toContain(ns)
   })
