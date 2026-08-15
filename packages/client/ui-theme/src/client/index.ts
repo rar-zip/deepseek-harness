@@ -19,6 +19,7 @@ import type { AppearanceRowInjected } from './AppearanceRow.tsx'
 import { AppearanceRow } from './AppearanceRow.tsx'
 import { createAppearanceRowStore } from './settings-store.ts'
 import { en, zh, type ThemeKey } from './locales.ts'
+import { CURATED_THEMES } from '../themes.ts'
 import {
   DEFAULT_PREFERENCE, isThemePreference, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
   type ThemePreference, type ThemeSettings,
@@ -68,6 +69,12 @@ export interface ThemeDefinition {
   colorScheme: 'light' | 'dark'
   /** Alias-layer overrides applied as inline CSS variables over the base palette. */
   tokens: ThemeTokens
+  /**
+   * Optional stylesheet injected while this theme is active and removed when
+   * another theme takes over. Carries what tokens cannot express — font
+   * stacks, halftone textures, icon overrides, page zoom — as raw CSS.
+   */
+  css?: string
 }
 
 /** Immutable theme state published on every change. */
@@ -386,12 +393,16 @@ export function apply(ctx: ClientContext): void {
   const theme = new ThemeRuntime(ctx, host)
   ctx.provide('theme', theme)
 
+  for (const curated of CURATED_THEMES) {
+    ctx.effect(() => theme.register(curated), `ui-theme: register curated theme ${curated.id}`)
+  }
+
   ctx.effect(() => ctx.locale.register(SETTINGS_NS, { zh, en }), 'ui-theme: settings row dictionaries')
 
   const store = createAppearanceRowStore()
   let bound: BoundActions<typeof store> | undefined
   const sync = (snapshot: ThemeSnapshot): void => {
-    bound?.sync(snapshot.preference, snapshot.revision)
+    bound?.sync(snapshot.preference, snapshot.themes, snapshot.revision)
   }
   ctx.on('theme/change', sync)
   const injected = (actions: BoundActions<typeof store>): AppearanceRowInjected => {

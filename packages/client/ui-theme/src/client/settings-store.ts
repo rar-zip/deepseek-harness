@@ -4,19 +4,25 @@
  * reads via props.useStore.
  */
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
-import type { ThemePreference } from '../theme-settings.ts'
+import type { ThemeDefinition } from './index.ts'
 
 /** Store state mirrored from the theme snapshot. */
 export interface AppearanceRowState {
-  /** Persisted preference (selection state reads this, never the resolved active theme). */
-  preference: ThemePreference
+  /**
+   * Selected preference or registered theme id. Wider than ThemePreference:
+   * `setTheme` accepts curated theme ids, which the snapshot reports through
+   * the same field.
+   */
+  preference: string
+  /** Registered themes in registration order (light/dark plus curated). */
+  themes: readonly ThemeDefinition[]
   /** Service revision; -1 until first sync so revision 0 lands as a change. */
   revision: number
 }
 
 /** Declared action shape giving the exported factory a stable return type. */
 type AppearanceRowActions = {
-  sync: (draft: AppearanceRowState, preference: ThemePreference, revision: number) => void
+  sync: (draft: AppearanceRowState, preference: string, themes: readonly ThemeDefinition[], revision: number) => void
 }
 
 /**
@@ -25,11 +31,12 @@ type AppearanceRowActions = {
  */
 export function createAppearanceRowStore(): EngineStoreHandle<AppearanceRowState, AppearanceRowActions> {
   return defineStore({
-    init: (): AppearanceRowState => ({ preference: 'system', revision: -1 }),
+    init: (): AppearanceRowState => ({ preference: 'system', themes: [], revision: -1 }),
     actions: {
-      sync: (d, preference: ThemePreference, revision: number) => {
+      sync: (d, preference: string, themes: readonly ThemeDefinition[], revision: number) => {
         if (revision <= d.revision) return
         d.preference = preference
+        d.themes = themes
         d.revision = revision
       },
     },

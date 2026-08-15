@@ -55,3 +55,19 @@
   background: var(--dsw-alias-bg-module-platform);
   border-color: var(--dsw-static-neutral-bluish-400);
 }
+
+/* Auto-generated theme preview: base surface + brand accent swatched from the
+ * theme's own tokens, so curated themes need no screenshot asset. */
+.swatch {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.swatch > span {
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--dsw-alias-border-l2);
+}

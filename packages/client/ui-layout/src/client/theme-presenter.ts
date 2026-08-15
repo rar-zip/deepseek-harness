@@ -18,11 +18,15 @@ export class ThemePresenter {
   private appliedTokens: string[] = []
   /** The single metadata node this presenter inserts and removes. */
   private readonly themeColorMeta: HTMLMetaElement
+  /** The single stylesheet node this presenter owns for the active theme's css. */
+  private readonly themeCssStyle: HTMLStyleElement
 
   /** Create the presenter-owned metadata node before the first snapshot arrives. */
   constructor() {
     this.themeColorMeta = document.createElement('meta')
     this.themeColorMeta.name = 'theme-color'
+    this.themeCssStyle = document.createElement('style')
+    this.themeCssStyle.dataset.themeCss = ''
   }
 
   /**
@@ -46,17 +50,25 @@ export class ThemePresenter {
       body.style.setProperty(name, value)
       this.appliedTokens.push(name)
     }
+    const css = snapshot.active.css
+    if (css !== undefined) {
+      this.themeCssStyle.textContent = css
+      if (!this.themeCssStyle.isConnected) document.head.append(this.themeCssStyle)
+    } else {
+      this.themeCssStyle.remove()
+    }
     this.themeColorMeta.content = getComputedStyle(body).backgroundColor
     if (!this.themeColorMeta.isConnected) document.head.append(this.themeColorMeta)
   }
 
-  /** Retract root color-scheme, the palette attribute, token variables, and the owned metadata node. */
+  /** Retract root color-scheme, the palette attribute, token variables, the owned css stylesheet, and the metadata node. */
   dispose(): void {
     document.documentElement.style.removeProperty('color-scheme')
     const body = document.body
     body.removeAttribute(DARK_ATTRIBUTE)
     for (const name of this.appliedTokens) body.style.removeProperty(name)
     this.appliedTokens = []
+    this.themeCssStyle.remove()
     this.themeColorMeta.remove()
   }
 }

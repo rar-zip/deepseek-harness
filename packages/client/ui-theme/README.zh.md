@@ -4,6 +4,8 @@
 
 主题插件：基于 --dsw-* token 基础样式表（静态尺度 + 别名语义层）的 ThemeRuntime。该服务拥有实时主题偏好（`light`／`dark`／`system`），将 `system` 通过 `prefers-color-scheme` 解析为实际主题，并发布不可变的 `ThemeSnapshot`，通过 `theme/change` 事件通知变化；它绝不接触 DOM：ui-layout 的呈现器会应用解析后的快照（`html { color-scheme }`、`body[data-ds-dark-theme]`，以及主题的别名 token 内联变量）。来自回环地址的浏览器会先以 `system` 立即提供该服务，随后在后台加载 `ui-theme.preference`，并将每次内置主题选择通过 Host settings API 写入；其本地提供方默认将设置存入 `$DSH_HOME/settings.yaml`。收到推送的 settings 变更时或重连后，浏览器都会重新拉取该设置；连续快速选择会按操作顺序携带 namespace revision 串行写入，最新写入被拒时则重新加载持久化值。远程浏览器无法访问特权 settings API，因此它的选择仅保留在进程内。已注册的第三方主题 id 仍是进程内扩展，不会跨越内置 settings schema；移除其中任意一个都绝不会覆盖最后一个持久化的内置偏好。该持久化边界由[Host settings 支撑的偏好决策](../../../.agents/notes/implemented/bug-fix/2026-08-06-host-backed-web-preferences.md)拥有。
 
+主题是 token 字典加一段可选原始样式表：`ThemeDefinition.css` 承载 token 无法表达的内容（字体栈、网点纹理、页面缩放、选中墨色）。呈现器为激活主题的 `css` 持有一个 `style[data-theme-css]` 节点，切换时注入、卸载时移除，因此注册主题能改动 CSS 能触达的任何内容，而颜色仍由 token 驱动。`src/themes.ts` 以数据形式内置三套精选主题（`editor-dark`、`manga-ink`、`pencil-paper`）——只用系统字体栈与 CSS 渐变，各仅几 KB，无 webfont、无图片负载。外观行在三个偏好立方体旁列出非内置的已注册主题，用各主题自身的 `bg-base` 与 `brand-primary` token 自动生成色板，而非截图资产。该扩展由[精选主题决策](../../../.agents/notes/implemented/feature/2026-08-15-curated-themes.md)拥有。
+
 当主机组合包含 HTTP 服务器时，主机侧紧接 `<body>` 起始标签注入同步引导代码。每份 index 响应会嵌入已注册的 Host 设置 `ui-theme.preference`，没有 settings provider 时则嵌入 `system`；浏览器按操作系统配色解析 `system`，随后在外壳加载页面渲染前设置 `color-scheme` 和 `body[data-ds-dark-theme]`。不含 HTTP 服务器的组合不受影响，插件树激活后，ThemeRuntime 与 ui-layout 仍分别是客户端状态和后续 DOM 更新的权威来源。
 
 `src/styles/` 下有五张样式表，全部由 web 壳的 `base.css` 导入：`base.css`、`design-platform.css`、`scrollbar.css`、`gradient-shadow-text.css` 与 `shiki.css`。`scrollbar.css` 是 `--dsw-alias-scrollbar-*` token 的唯一消费方，必须排在声明这些 token 的 `design-platform.css` 之后。
@@ -23,4 +25,5 @@
 ## 已知限制与暂缓事项
 
 - **第三方主题是表层，不是产品**：注册主题意味着覆盖同名别名变量；目前不会验证一组覆盖是否完整。
+- **精选主题选择是进程内的**：`setTheme` 只持久化内置的 `light`／`dark`／`system` 偏好，因此精选主题 id 不会跨刷新保留。持久化所选主题 id、并在启动时精选主题注册后重新解析它，列为暂缓事项。
 - **token 样式表是颜色值的唯一权威来源**：会有意不补入 cssdesign 中缺失的值（例如设计中的 #4176E6 标签页蓝色）；一律采用最接近的语义 token。设计负责人批准的新增值是例外：须在同一变更中以一个静态尺度层级与一个语义别名的形式进入（`--dsw-static-blue-900` / `--dsw-alias-label-primary-bluish`）。

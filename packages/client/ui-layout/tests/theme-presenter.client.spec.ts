@@ -5,20 +5,20 @@
 // retracts everything the presenter wrote.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
+import type { ThemeDefinition, ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { DARK_ATTRIBUTE, ThemePresenter } from '@deepseek-ai/dsh-client-ui-layout/src/client/theme-presenter.ts'
 
 const LIGHT_THEME_COLOR = 'rgb(255, 255, 255)'
 const DARK_THEME_COLOR = 'rgb(21, 21, 23)'
 
-function snapshot(colorScheme: 'light' | 'dark', tokens: Record<string, string> = {}): ThemeSnapshot {
+function snapshot(colorScheme: 'light' | 'dark', tokens: Record<string, string> = {}, css?: string): ThemeSnapshot {
   // The presenter must key off colorScheme, not the id — keep them distinct.
-  const active = { id: `${colorScheme}-test`, colorScheme, tokens }
+  const active: ThemeDefinition = { id: `${colorScheme}-test`, colorScheme, tokens, ...(css === undefined ? {} : { css }) }
   return { preference: colorScheme, active, themes: [active], revision: 1 }
 }
 
 function clearThemePresentation(): void {
-  document.head.querySelectorAll('meta[name="theme-color"], style[data-theme-presenter-test]').forEach((node) => { node.remove() })
+  document.head.querySelectorAll('meta[name="theme-color"], style[data-theme-presenter-test], style[data-theme-css]').forEach((node) => { node.remove() })
 }
 
 function themeColorMeta(): HTMLMetaElement | null {
@@ -87,5 +87,26 @@ describe('ThemePresenter', () => {
     expect(document.body.style.getPropertyValue('--dsw-alias-bg')).toBe('')
     expect(document.body.style.getPropertyValue('--foreign')).toBe('kept')
     expect(meta?.isConnected).toBe(false)
+  })
+
+  it('injects the active theme css, replaces it on switch, and removes it when absent', () => {
+    const presenter = new ThemePresenter()
+    presenter.apply(snapshot('light', {}, 'body{background:red}'))
+    const style = document.head.querySelector<HTMLStyleElement>('style[data-theme-css]')
+    expect(style?.textContent).toBe('body{background:red}')
+    presenter.apply(snapshot('dark', {}, 'body{background:blue}'))
+    expect(style?.textContent).toBe('body{background:blue}')
+    expect(document.head.querySelectorAll('style[data-theme-css]')).toHaveLength(1)
+    presenter.apply(snapshot('dark', {}))
+    expect(style?.isConnected).toBe(false)
+  })
+
+  it('dispose removes the css stylesheet', () => {
+    const presenter = new ThemePresenter()
+    presenter.apply(snapshot('light', {}, 'body{background:red}'))
+    const style = document.head.querySelector<HTMLStyleElement>('style[data-theme-css]')
+    expect(style?.isConnected).toBe(true)
+    presenter.dispose()
+    expect(style?.isConnected).toBe(false)
   })
 })
