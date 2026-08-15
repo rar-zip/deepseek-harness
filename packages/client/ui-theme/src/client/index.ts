@@ -22,17 +22,17 @@ import { ThemeSection } from './ThemeSection.tsx'
 import { createAppearanceRowStore } from './settings-store.ts'
 import { en, zh, type ThemeKey } from './locales.ts'
 import { CURATED_THEMES } from '../themes.ts'
-import { importTheme } from './theme-import.ts'
+import { importTheme, parseThemeDefinition } from './theme-import.ts'
 import {
-  DEFAULT_PREFERENCE, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
-  type ThemeSettings,
+  DEFAULT_PREFERENCE, THEME_IMPORTED_FIELD, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
+  type ImportedTheme, type ThemeSettings,
 } from '../theme-settings.ts'
 
 export type { AppearanceRowComponentProps, AppearanceRowInjected } from './AppearanceRow.tsx'
 export type { ThemeSectionInjected, ThemeSectionProps } from './ThemeSection.tsx'
 export type { AppearanceRowState } from './settings-store.ts'
 export type { ThemeKey } from './locales.ts'
-export type { ThemePreference, ThemeSettings } from '../theme-settings.ts'
+export type { ImportedTheme, ThemePreference, ThemeSettings } from '../theme-settings.ts'
 
 /** Namespace owning this feature's settings-row copy. */
 export const SETTINGS_NS = 'settings.theme'
@@ -408,6 +408,26 @@ export function apply(ctx: ClientContext): void {
     ctx.effect(() => theme.register(curated), `ui-theme: register curated theme ${curated.id}`)
   }
 
+  // Register imported themes from the settings document, idempotently: a theme
+  // already registered by a live import is skipped on the settings echo.
+  const registerImported = (): void => {
+    const section = host.getSnapshot().value
+    if (section === undefined) return
+    for (const imported of section.importedThemes) {
+      if (theme.getTheme().themes.some(t => t.id === imported.id)) continue
+      const definition: ThemeDefinition = {
+        id: imported.id,
+        colorScheme: imported.colorScheme,
+        tokens: imported.tokens,
+        ...(imported.name === '' ? {} : { name: imported.name }),
+        ...(imported.css === '' ? {} : { css: imported.css }),
+      }
+      theme.register(definition)
+    }
+  }
+  ctx.effect(() => host.subscribe(registerImported), 'ui-theme: register imported themes')
+  registerImported()
+
   ctx.effect(() => ctx.locale.register(SETTINGS_NS, { zh, en }), 'ui-theme: settings row dictionaries')
 
   const store = createAppearanceRowStore()
@@ -447,7 +467,22 @@ export function apply(ctx: ClientContext): void {
     return {
       setTheme: (id) => { theme.setTheme(id) },
       t,
-      importTheme: jsonText => importTheme(theme, jsonText),
+      importTheme: (jsonText) => {
+        const err = importTheme(theme, jsonText)
+        if (err === null) {
+          const definition = parseThemeDefinition(jsonText)
+          const imported: ImportedTheme = {
+            id: definition.id,
+            name: definition.name ?? '',
+            colorScheme: definition.colorScheme,
+            tokens: definition.tokens,
+            css: definition.css ?? '',
+          }
+          const current = host.getSnapshot().value?.importedThemes ?? []
+          void host.set(THEME_IMPORTED_FIELD, [...current, imported])
+        }
+        return err
+      },
     }
   }
   ctx.slots.inject('settings.section', () => ctx.slots.register({
