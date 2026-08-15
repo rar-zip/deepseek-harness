@@ -1,4 +1,4 @@
-/** `settings.theme` namespace dictionaries (the Appearance row's copy). */
+/** `settings.theme` namespace dictionaries (Appearance row + Themes section). */
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
@@ -6,9 +6,7 @@ export const zh = {
   'appearance.light': '浅色',
   'appearance.dark': '深色',
   'appearance.system': '跟随系统',
-  'theme.editor-dark': '沉浸深色',
-  'theme.manga-ink': '线条动漫',
-  'theme.pencil-paper': '黑白纸',
+  'themes.nav': '主题',
 } satisfies Record<string, string>
 
 /** The settings.theme namespace key union. */
@@ -20,7 +18,5 @@ export const en = {
   'appearance.light': 'Light',
   'appearance.dark': 'Dark',
   'appearance.system': 'System',
-  'theme.editor-dark': 'Editor Dark',
-  'theme.manga-ink': 'Manga Ink',
-  'theme.pencil-paper': 'Pencil Paper',
+  'themes.nav': 'Themes',
 } satisfies Record<ThemeKey, string>

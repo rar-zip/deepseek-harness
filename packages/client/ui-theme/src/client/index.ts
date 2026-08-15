@@ -17,6 +17,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { AppearanceRowInjected } from './AppearanceRow.tsx'
 import { AppearanceRow } from './AppearanceRow.tsx'
+import type { ThemeSectionInjected } from './ThemeSection.tsx'
+import { ThemeSection } from './ThemeSection.tsx'
 import { createAppearanceRowStore } from './settings-store.ts'
 import { en, zh, type ThemeKey } from './locales.ts'
 import { CURATED_THEMES } from '../themes.ts'
@@ -26,6 +28,7 @@ import {
 } from '../theme-settings.ts'
 
 export type { AppearanceRowComponentProps, AppearanceRowInjected } from './AppearanceRow.tsx'
+export type { ThemeSectionInjected, ThemeSectionProps } from './ThemeSection.tsx'
 export type { AppearanceRowState } from './settings-store.ts'
 export type { ThemeKey } from './locales.ts'
 export type { ThemePreference, ThemeSettings } from '../theme-settings.ts'
@@ -62,6 +65,11 @@ export type ThemeTokenOverrides = Record<string, ThemeTokenModes>
 export interface ThemeDefinition {
   /** Theme id (the setTheme argument for concrete themes). */
   id: string
+  /**
+   * Display name shown in the theme gallery. Imported themes carry it from
+   * their file; built-in themes embed it directly (proper nouns, not locale copy).
+   */
+  name?: string
   /**
    * Which base palette this theme builds on. The presenter switches
    * `body[data-ds-dark-theme]` from this field — never from the id.
@@ -422,4 +430,28 @@ export function apply(ctx: ClientContext): void {
     locale: SETTINGS_NS,
     inject: injected,
   }, AppearanceRow))
+
+  const t = ctx.locale.bind(SETTINGS_NS)
+  const sectionStore = createAppearanceRowStore()
+  let sectionBound: BoundActions<typeof sectionStore> | undefined
+  const syncSection = (snapshot: ThemeSnapshot): void => {
+    sectionBound?.sync(snapshot.preference, snapshot.themes, snapshot.revision)
+  }
+  ctx.on('theme/change', syncSection)
+  const sectionInjected = (actions: BoundActions<typeof sectionStore>): ThemeSectionInjected => {
+    sectionBound = actions
+    syncSection(theme.getTheme())
+    return {
+      setTheme: (id) => { theme.setTheme(id) },
+      t,
+    }
+  }
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'themes',
+    order: 20,
+    label: () => t('themes.nav'),
+    store: sectionStore,
+    inject: sectionInjected,
+  }, ThemeSection))
 }

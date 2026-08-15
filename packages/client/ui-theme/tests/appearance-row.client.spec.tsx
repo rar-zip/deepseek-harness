@@ -8,7 +8,6 @@ import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
 import { AppearanceRow } from '../src/client/AppearanceRow.tsx'
 import type { AppearanceRowComponentProps } from '../src/client/AppearanceRow.tsx'
 import { createAppearanceRowStore } from '../src/client/settings-store.ts'
-import type { ThemeDefinition } from '../src/client/index.ts'
 
 afterEach(cleanup)
 
@@ -17,9 +16,6 @@ const COPY: Record<string, string> = {
   'appearance.light': 'Light',
   'appearance.dark': 'Dark',
   'appearance.system': 'System',
-  'theme.editor-dark': 'Editor Dark',
-  'theme.manga-ink': 'Manga Ink',
-  'theme.pencil-paper': 'Pencil Paper',
 }
 
 /** Empty global standard-kit hooks (the row reads neither). */
@@ -36,10 +32,10 @@ function emptyWorkspaces() {
   return bindSnapshotSelector(store)
 }
 
-function mount(preference: string = 'system', themes: readonly ThemeDefinition[] = []) {
+function mount(preference: string = 'system') {
   // Real store instance — the sanctioned zero-machinery path for tests.
   const store = createAppearanceRowStore().create()
-  store.actions.sync(preference, themes, 0)
+  store.actions.sync(preference, [], 0)
   const setTheme = vi.fn()
   const props: AppearanceRowComponentProps = {
     useSessions: emptySessions(),
@@ -74,26 +70,5 @@ describe('AppearanceRow', () => {
     act(() => { b.store.actions.sync('light', [], 1) })
     expect(pressed(/Light/)).toBe('true')
     expect(pressed(/Dark/)).toBe('false')
-  })
-
-  it('renders curated themes beside the three cubes and marks the selected one', () => {
-    const curated: readonly ThemeDefinition[] = [
-      { id: 'editor-dark', colorScheme: 'dark', tokens: { '--dsw-alias-bg-base': '#111', '--dsw-alias-brand-primary': '#4d9fff' } },
-      { id: 'manga-ink', colorScheme: 'dark', tokens: { '--dsw-alias-bg-base': '#222', '--dsw-alias-brand-primary': '#ffd60a' } },
-    ]
-    mount('editor-dark', curated)
-    expect(screen.getByText('Editor Dark')).toBeDefined()
-    expect(screen.getByText('Manga Ink')).toBeDefined()
-    expect(pressed(/Editor Dark/)).toBe('true')
-    expect(pressed(/Manga Ink/)).toBe('false')
-  })
-
-  it('click on a curated theme drives setTheme with its id', () => {
-    const curated: readonly ThemeDefinition[] = [
-      { id: 'pencil-paper', colorScheme: 'light', tokens: { '--dsw-alias-bg-base': '#fff' } },
-    ]
-    const b = mount('system', curated)
-    fireEvent.click(screen.getByRole('button', { name: /Pencil Paper/ }))
-    expect(b.setTheme).toHaveBeenCalledWith('pencil-paper')
   })
 })
