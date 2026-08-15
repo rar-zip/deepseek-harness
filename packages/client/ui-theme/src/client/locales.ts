@@ -7,6 +7,7 @@ export const zh = {
   'appearance.dark': '深色',
   'appearance.system': '跟随系统',
   'themes.nav': '主题',
+  'themes.import': '导入主题',
 } satisfies Record<string, string>
 
 /** The settings.theme namespace key union. */
@@ -19,4 +20,5 @@ export const en = {
   'appearance.dark': 'Dark',
   'appearance.system': 'System',
   'themes.nav': 'Themes',
+  'themes.import': 'Import theme',
 } satisfies Record<ThemeKey, string>

@@ -22,6 +22,7 @@ import { ThemeSection } from './ThemeSection.tsx'
 import { createAppearanceRowStore } from './settings-store.ts'
 import { en, zh, type ThemeKey } from './locales.ts'
 import { CURATED_THEMES } from '../themes.ts'
+import { importTheme } from './theme-import.ts'
 import {
   DEFAULT_PREFERENCE, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
   type ThemeSettings,
@@ -446,6 +447,7 @@ export function apply(ctx: ClientContext): void {
     return {
       setTheme: (id) => { theme.setTheme(id) },
       t,
+      importTheme: jsonText => importTheme(theme, jsonText),
     }
   }
   ctx.slots.inject('settings.section', () => ctx.slots.register({

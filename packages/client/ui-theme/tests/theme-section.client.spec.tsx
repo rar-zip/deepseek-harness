@@ -45,6 +45,7 @@ function mount(preference: string = 'system', themes: readonly ThemeDefinition[]
     actions: store.actions,
     setTheme,
     t: (key: string) => COPY[key] ?? key,
+    importTheme: () => null,
   }
   render(<ThemeSection {...props} />)
   return { store, setTheme }
