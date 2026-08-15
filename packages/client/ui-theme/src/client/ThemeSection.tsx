@@ -1,9 +1,9 @@
 /**
  * Themes settings section: the full theme gallery — the `system` preference
  * plus every registered theme (light/dark, built-in curated, imported). Each
- * card renders an auto-generated swatch from the theme's own surface and
- * accent tokens, so imported themes need no screenshot asset. An import row
- * reads a theme JSON file through the browser file picker and registers it.
+ * card renders a large mini preview of the theme's surface, accent, and text
+ * colors (Google-style theme picker), so imported themes need no screenshot
+ * asset. An import row reads a theme JSON file through the browser file picker.
  */
 import clsx from 'clsx'
 import { useRef, useState } from 'react'
@@ -12,6 +12,7 @@ import type { PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the settings shell's SlotMap merge (the 'settings.section' entry).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { ThemeKey } from './locales.ts'
+import type { ThemeDefinition } from './index.ts'
 import type { createAppearanceRowStore } from './settings-store.ts'
 import styles from './ThemeSection.module.css'
 
@@ -39,8 +40,11 @@ const BUILTIN_LABEL_KEYS: Record<string, ThemeKey> = {
 interface GalleryEntry {
   id: string
   name: string
+  /** `undefined` only for the `system` entry (split preview). */
+  scheme: 'light' | 'dark' | undefined
   bg: string | undefined
   accent: string | undefined
+  label: string | undefined
 }
 
 function entryName(id: string, name: string | undefined, t: ThemeSectionInjected['t']): string {
@@ -48,6 +52,17 @@ function entryName(id: string, name: string | undefined, t: ThemeSectionInjected
   if (name !== undefined) return name
   const key = BUILTIN_LABEL_KEYS[id]
   return key !== undefined ? t(key) : id
+}
+
+/** Preview colors, falling back to the base palette for built-in light/dark. */
+function previewColors(theme: ThemeDefinition) {
+  const tokens = theme.tokens
+  const dark = theme.colorScheme === 'dark'
+  return {
+    bg: tokens['--dsw-alias-bg-base'] ?? (dark ? '#151517' : '#ffffff'),
+    accent: tokens['--dsw-alias-brand-primary'] ?? (dark ? '#f5f5f5' : '#1a1a1a'),
+    label: tokens['--dsw-alias-label-primary'] ?? (dark ? '#f5f5f5' : '#1a1a1a'),
+  }
 }
 
 /**
@@ -61,13 +76,11 @@ export function ThemeSection({ setTheme, t, useStore, importTheme }: ThemeSectio
   const fileInput = useRef<HTMLInputElement>(null)
 
   const entries: readonly GalleryEntry[] = [
-    { id: 'system', name: t('appearance.system'), bg: undefined, accent: undefined },
-    ...themes.map(theme => ({
-      id: theme.id,
-      name: entryName(theme.id, theme.name, t),
-      bg: theme.tokens['--dsw-alias-bg-base'],
-      accent: theme.tokens['--dsw-alias-brand-primary'],
-    })),
+    { id: 'system', name: t('appearance.system'), scheme: undefined, bg: undefined, accent: undefined, label: undefined },
+    ...themes.map((theme) => {
+      const colors = previewColors(theme)
+      return { id: theme.id, name: entryName(theme.id, theme.name, t), scheme: theme.colorScheme, ...colors }
+    }),
   ]
 
   const onImportClick = (): void => { fileInput.current?.click() }
@@ -94,9 +107,13 @@ export function ThemeSection({ setTheme, t, useStore, importTheme }: ThemeSectio
             aria-pressed={preference === entry.id}
             onClick={() => { setTheme(entry.id) }}
           >
-            <span className={styles.swatch}>
-              <span style={{ background: entry.bg ?? 'transparent' }} />
-              <span style={{ background: entry.accent ?? 'transparent' }} />
+            <span
+              className={styles.preview}
+              style={{ background: entry.scheme === undefined ? 'linear-gradient(90deg,#ffffff 50%,#151517 50%)' : entry.bg }}
+            >
+              <span className={styles.previewBar} style={{ background: entry.accent ?? '#888888' }} />
+              <span className={styles.previewLine} style={{ background: entry.label ?? '#888888' }} />
+              <span className={styles.previewLine} style={{ background: entry.label ?? '#888888', opacity: 0.45, width: '62%' }} />
             </span>
             <span className={styles.name}>{entry.name}</span>
           </button>

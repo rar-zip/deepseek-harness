@@ -1,23 +1,21 @@
-/* Themes gallery: a wrapping grid of selectable theme cards. */
+/* Themes gallery: a wrapping grid of large preview cards (Google-style). */
 
 .gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
 }
 
 .card {
   box-sizing: border-box;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
   border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--dsw-alias-bg-layer-1);
   font: inherit;
-  font-size: 14px;
-  line-height: 22px;
   color: var(--dsw-alias-label-primary);
   cursor: pointer;
 }
@@ -31,34 +29,38 @@
   box-shadow: inset 0 0 0 1px var(--dsw-alias-brand-primary);
 }
 
-/* Auto-generated preview: surface + accent swatched from the theme's tokens. */
-.swatch {
-  display: inline-flex;
-  flex: none;
-  gap: 2px;
+/* Mini preview: an accent toolbar strip over the theme's surface, plus two
+ * text lines in the theme's label color. */
+.preview {
+  display: block;
+  height: 96px;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.swatch > span {
+.previewBar {
+  display: block;
+  height: 24px;
+}
+
+.previewLine {
+  display: block;
   box-sizing: border-box;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid var(--dsw-alias-border-l2);
-}
-
-.swatch > span:first-child {
-  border-radius: 6px 0 0 6px;
-}
-
-.swatch > span:last-child {
-  border-radius: 0 6px 6px 0;
+  height: 6px;
+  border-radius: 3px;
+  margin: 10px 12px 0;
+  opacity: 0.9;
 }
 
 .name {
   min-width: 0;
+  padding: 0 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 14px;
+  line-height: 22px;
+  text-align: left;
 }
 
 .wrap {
