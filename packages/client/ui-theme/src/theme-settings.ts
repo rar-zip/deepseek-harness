@@ -19,13 +19,17 @@ export const DEFAULT_PREFERENCE: ThemePreference = 'system'
 
 /** Durable theme section shared by the Host schema and the browser scope. */
 export interface ThemeSettings {
-  /** Selected built-in preference. */
-  preference: ThemePreference
+  /**
+   * Selected preference: a built-in preference (`light`/`dark`/`system`) or a
+   * registered theme id. Wider than `ThemePreference` because a registered
+   * theme persists its id through the same field.
+   */
+  preference: string
 }
 
 /** Durable theme schema; also the wire envelope the browser scope validates against. */
 export const ThemeSettingsSchema: z<ThemeSettings> = z.object({
-  [THEME_PREFERENCE_FIELD]: z.union([...THEME_PREFERENCES]).default(DEFAULT_PREFERENCE),
+  [THEME_PREFERENCE_FIELD]: z.string().default(DEFAULT_PREFERENCE),
 })
 
 /**

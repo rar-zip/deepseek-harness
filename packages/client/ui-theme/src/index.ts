@@ -6,7 +6,7 @@ import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { injectBootTheme } from './boot-theme.ts'
 import {
   DEFAULT_PREFERENCE, THEME_SETTINGS_NAMESPACE, ThemeSettingsSchema,
-  type ThemePreference, type ThemeSettings,
+  type ThemeSettings,
 } from './theme-settings.ts'
 
 export {
@@ -17,7 +17,7 @@ export {
 const THEME_NAMESPACE = settingsNamespace(THEME_SETTINGS_NAMESPACE)
 
 /** Read the registered preference or use the schema default without a settings provider. */
-function readPreference(ctx: Context): ThemePreference {
+function readPreference(ctx: Context): string {
   const settings = ctx.get('settings')
   if (settings === undefined) return DEFAULT_PREFERENCE
   const section = settings.get(THEME_NAMESPACE) as ThemeSettings | undefined

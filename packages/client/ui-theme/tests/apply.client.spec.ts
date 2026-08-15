@@ -166,13 +166,14 @@ describe('ui-theme apply', () => {
     await fiber.dispose()
   })
 
-  it('ignores an invalid preference crossing the settings wire', async () => {
+  it('keeps an unregistered persisted preference but resolves to the light base', async () => {
     const b = await bench()
     b.setHostPreference('sepia')
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const theme = b.ctx.get('theme') as ThemeRuntime
     await vi.waitFor(() => { expect(b.describe).toHaveBeenCalledOnce() })
-    expect(theme.getTheme().preference).toBe('system')
+    expect(theme.getTheme().preference).toBe('sepia')
+    expect(theme.getTheme().active.id).toBe('light')
   })
 
   it('recovers after an HMR collapse of the declaring entry (stale disposer must not block)', async () => {

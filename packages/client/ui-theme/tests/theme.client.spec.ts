@@ -58,6 +58,15 @@ describe('ThemeRuntime', () => {
     expect(events).toHaveLength(1)
   })
 
+  it('resolves an unregistered persisted id to the light base until it registers', () => {
+    const { theme, host } = make()
+    host.publish({ status: 'ready', value: { preference: 'sepia' }, revision: 1, writable: true })
+    expect(theme.getTheme().preference).toBe('sepia')
+    expect(theme.getTheme().active.id).toBe('light')
+    theme.register({ id: 'sepia', colorScheme: 'dark', tokens: {} })
+    expect(theme.getTheme().active.id).toBe('sepia')
+  })
+
   it('adopts a section already standing at construction', () => {
     const host = stubSettingsScope<ThemeSettings>()
     host.publish({ status: 'ready', value: { preference: 'dark' }, revision: 1, writable: true })
@@ -81,9 +90,8 @@ describe('ThemeRuntime', () => {
     dispose()
     expect(theme.getTheme().preference).toBe('system')
     expect(theme.getTheme().themes.map(t => t.id)).toEqual(['light', 'dark'])
-    // Custom ids are in-process extension themes; only the built-in product
-    // preferences cross the Host settings schema.
-    expect(host.set).not.toHaveBeenCalled()
+    // A registered theme id persists through the same field as built-in preferences.
+    expect(host.set).toHaveBeenCalledWith('preference', 'sepia')
     // register + set + dispose = three publishes; disposer is idempotent.
     expect(events.length).toBe(3)
     dispose()

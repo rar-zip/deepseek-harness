@@ -20,8 +20,8 @@ import { AppearanceRow } from './AppearanceRow.tsx'
 import { createAppearanceRowStore } from './settings-store.ts'
 import { en, zh, type ThemeKey } from './locales.ts'
 import {
-  DEFAULT_PREFERENCE, isThemePreference, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
-  type ThemePreference, type ThemeSettings,
+  DEFAULT_PREFERENCE, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
+  type ThemeSettings,
 } from '../theme-settings.ts'
 
 export type { AppearanceRowComponentProps, AppearanceRowInjected } from './AppearanceRow.tsx'
@@ -68,12 +68,18 @@ export interface ThemeDefinition {
   colorScheme: 'light' | 'dark'
   /** Alias-layer overrides applied as inline CSS variables over the base palette. */
   tokens: ThemeTokens
+  /**
+   * Optional stylesheet injected while this theme is active and removed when
+   * another theme takes over. Carries what tokens cannot express — font
+   * stacks, halftone textures, icon overrides, page zoom — as raw CSS.
+   */
+  css?: string
 }
 
 /** Immutable theme state published on every change. */
 export interface ThemeSnapshot {
-  /** The persisted preference (may be `system`). */
-  preference: ThemePreference
+  /** The persisted preference: a built-in preference or a registered theme id. */
+  preference: string
   /**
    * The resolved active theme (`system` resolved via prefers-color-scheme)
    * with override layers folded into its tokens (seq order, later layers win
@@ -151,7 +157,7 @@ export class ThemeRuntime {
   private readonly ctx: Context
   private readonly host: SettingsScope<ThemeSettings>
   private themes: ThemeDefinition[] = [...BUILTIN_THEMES]
-  private preference: ThemePreference
+  private preference: string
   private revision = 0
   private snapshot: ThemeSnapshot
   private readonly media: MediaQueryList | undefined
@@ -224,8 +230,8 @@ export class ThemeRuntime {
       throw new Error(`theme "${id}" is not registered`)
     }
     if (this.preference === id) return
-    this.preference = id as ThemePreference
-    if (isThemePreference(id)) void this.host.set(THEME_PREFERENCE_FIELD, id)
+    this.preference = id
+    void this.host.set(THEME_PREFERENCE_FIELD, id)
     this.publish()
   }
 
@@ -293,11 +299,12 @@ export class ThemeRuntime {
     const resolvedId = this.preference === 'system'
       ? (this.media?.matches === true ? 'dark' : 'light')
       : this.preference
-    // Both built-ins always exist; a registered preference id resolves or has
-    // been reset by its disposer, so the lookup cannot miss.
-    const active = this.themes.find(t => t.id === resolvedId)
-    /* v8 ignore next 2 -- needs a registry without light/dark, which register()/dispose() cannot produce */
-    if (active === undefined) throw new Error(`theme registry lost "${resolvedId}"`)
+    // A persisted id may not be registered yet (a registered theme can adopt
+    // after this runtime adopts the durable preference at boot); resolve to
+    // the light base until the matching theme registers and republishes.
+    const active = this.themes.find(t => t.id === resolvedId) ?? this.themes.find(t => t.id === 'light')
+    /* v8 ignore next 2 -- the built-in light theme always exists */
+    if (active === undefined) throw new Error('theme registry lost the light base')
     return Object.freeze({
       preference: this.preference,
       active: this.composeActive(active),
